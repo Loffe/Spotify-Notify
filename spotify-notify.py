@@ -1,7 +1,8 @@
 #!/usr/bin/python -OO
 # Spotify-notify
-# by SveinT (sveint@gmail.com)
+# By Erik Eloff (erik@eloff.se)
 # Original code by noalwin (lambda512@gmail.com)
+#                  SveinT (sveint@gmail.com)
 # Based on pypanel code
 print "Spotify-notify v0.1"
 import os, time, sys, datetime, string
@@ -76,7 +77,7 @@ class spotify(object):
     
     
     def _update(self):
-        while self._dsp.pending_events():
+        while True:
             e = self._dsp.next_event()
             #print e
             
@@ -102,9 +103,10 @@ class spotify(object):
                         except Xlib.error.BadWindow:
                             #print "BADWINDOW!"
                             pass
+            self.get_song()
+            self.on_update()
     
     def get_song(self):
-        self._update()
         # self._spotify_title -> "Spotify \xe2\x80\x93 Title - Artist"
         
         if self._spotify_title is None or self._spotify_title == 'Spotify':
@@ -120,13 +122,14 @@ class spotify(object):
             return {'title': self._spotify_title[10:]}
     
 
+oldsong = None
 if __name__ == "__main__":
     if not pynotify.init ("icon-summary-body"):
         print "You need to have a working pynotify-library installed.\nIf you are using Ubuntu, try \"sudo apt-get install python-notify\""
         sys.exit (1)
     s = spotify()
-    oldsong = None
-    while 1:
+    def my_update():
+        global oldsong
         song = s.get_song()
         #song['artist'] = "Midlake"
         #song['title'] = "Roscoe"
@@ -170,5 +173,7 @@ if __name__ == "__main__":
                         albumname +release_string,
                         cover_image)
                     n.show ()
-        time.sleep(1)
+
+    s.on_update = my_update
+    s._update()
 
