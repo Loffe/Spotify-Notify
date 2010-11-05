@@ -23,9 +23,11 @@ class SpotifyNotify():
     def trackChange(self, *trackChange):
         print trackChange
 
-class MediaKeyHandler(object):
-    def __init__(self):
-        
+class spotify(object):
+    def __init__(self, update_handler):
+        self.on_update = update_handler
+
+        DBusGMainLoop(set_as_default=True)
         self.bus = dbus.Bus(dbus.Bus.TYPE_SESSION)
         self.bus_object = self.bus.get_object(
             'org.gnome.SettingsDaemon', '/org/gnome/SettingsDaemon/MediaKeys')
@@ -52,6 +54,6 @@ class MediaKeyHandler(object):
                 key = "Prev"
                 self.SN.executeCommand(key)
 
-DBusGMainLoop(set_as_default=True)
-MediaKeyHandler()
-gtk.main()
+
+    def loop(self):
+        gtk.main()
