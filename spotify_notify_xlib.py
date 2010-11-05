@@ -6,7 +6,8 @@ except:
 	sys.exit(1)
 
 class spotify(object):
-    def __init__(self):
+    def __init__(self, update_handler):
+        self.on_update = update_handler
         self._dsp = display.Display()
         self._screen  = self._dsp.screen()
         self._root    = self._screen.root
@@ -63,7 +64,7 @@ class spotify(object):
         self._spotify_title = None
     
     
-    def _update(self):
+    def loop(self):
         while True:
             e = self._dsp.next_event()
             #print e

@@ -14,7 +14,7 @@ API_KEY = '73f8547fa82ecbd0d0313f063c29571d' #spotify-notify's Last.fm API key
 CURRENT_DIR = os.path.abspath(os.curdir).replace(';','')+"/"
 
 oldsong = None
-def my_update():
+def update_handler():
     song = s.get_song()
     global oldsong
     #song['artist'] = "Midlake"
@@ -66,8 +66,6 @@ if __name__ == "__main__":
         print "You need to have a working pynotify-library installed.\nIf you are using Ubuntu, try \"sudo apt-get install python-notify\""
         sys.exit (1)
 
-    s = spotify()
-
-    s.on_update = my_update
-    s._update()
+    s = spotify(update_handler)
+    s.loop()
 
