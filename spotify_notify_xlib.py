@@ -92,7 +92,7 @@ class spotify(object):
                             #print "BADWINDOW!"
                             pass
             self.get_song()
-            self.on_update()
+            self.on_update(self.get_song())
     
     def get_song(self):
         # self._spotify_title -> "Spotify \xe2\x80\x93 Title - Artist"

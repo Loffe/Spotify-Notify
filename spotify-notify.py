@@ -14,8 +14,7 @@ API_KEY = '73f8547fa82ecbd0d0313f063c29571d' #spotify-notify's Last.fm API key
 CURRENT_DIR = os.path.abspath(os.curdir).replace(';','')+"/"
 
 oldsong = None
-def update_handler():
-    song = s.get_song()
+def update_handler(song):
     global oldsong
     #song['artist'] = "Midlake"
     #song['title'] = "Roscoe"
