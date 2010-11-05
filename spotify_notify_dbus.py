@@ -9,7 +9,8 @@ import gobject, gtk
 
 class SpotifyNotify(): 
     
-    def __init__(self, object):
+    def __init__(self, object, update_handler):
+        self.on_update = update_handler
 
         self.bus = object
         self.spotifyservice = self.bus.get_object('com.spotify.qt', '/TrackList')
@@ -22,10 +23,14 @@ class SpotifyNotify():
     
     def trackChange(self, *trackChange):
         print trackChange
+        data = trackChange[0]
+
+        if "artist" in data:
+            song = {'artist': data["artist"], 'title': data["title"]}
+            self.on_update(song)
 
 class spotify(object):
     def __init__(self, update_handler):
-        self.on_update = update_handler
 
         DBusGMainLoop(set_as_default=True)
         self.bus = dbus.Bus(dbus.Bus.TYPE_SESSION)
@@ -38,7 +43,7 @@ class spotify(object):
         self.bus_object.connect_to_signal(
             'MediaPlayerKeyPressed', self.handle_mediakey)
 
-        self.SN = SpotifyNotify(self.bus)
+        self.SN = SpotifyNotify(self.bus, update_handler)
         
     def handle_mediakey(self, *mmkeys):
         for key in mmkeys:
