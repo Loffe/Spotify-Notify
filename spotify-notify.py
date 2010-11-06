@@ -8,8 +8,6 @@ print "Spotify-notify v0.1"
 import os, time, sys, datetime, string
 import pynotify
 import pylast
-import  spotify_notify_dbus
-import  spotify_notify_xlib
 
 API_KEY = '73f8547fa82ecbd0d0313f063c29571d' #spotify-notify's Last.fm API key
 CURRENT_DIR = os.path.abspath(os.curdir).replace(';','')+"/"
@@ -20,8 +18,10 @@ class SpotifyNotify(object):
 
     def __init__(self):
         try:
+            import  spotify_notify_dbus
             self.backend = spotify_notify_dbus.spotify(self)
         except:
+            import  spotify_notify_xlib
             self.backend = spotify_notify_xlib.spotify(self)
         self.backend.loop()
 
