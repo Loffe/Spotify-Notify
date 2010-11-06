@@ -6,8 +6,8 @@ except:
 	sys.exit(1)
 
 class spotify(object):
-    def __init__(self, update_handler):
-        self.on_update = update_handler
+    def __init__(self, listener):
+        self.listener = listener
         self._dsp = display.Display()
         self._screen  = self._dsp.screen()
         self._root    = self._screen.root
@@ -92,7 +92,7 @@ class spotify(object):
                             #print "BADWINDOW!"
                             pass
             self.get_song()
-            self.on_update(self.get_song())
+            self.listener.on_track_change(self.get_song())
     
     def get_song(self):
         # self._spotify_title -> "Spotify \xe2\x80\x93 Title - Artist"

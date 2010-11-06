@@ -14,59 +14,62 @@ from spotify_notify_dbus import spotify
 API_KEY = '73f8547fa82ecbd0d0313f063c29571d' #spotify-notify's Last.fm API key
 CURRENT_DIR = os.path.abspath(os.curdir).replace(';','')+"/"
 
-oldsong = None
-old_id = None
-def update_handler(song):
-    global oldsong, old_id
-    #song['artist'] = "Midlake"
-    #song['title'] = "Roscoe"
-    if song != oldsong:
-        oldsong = song
+class SpotifyNotify(object):
+    oldsong = None
+    old_id = None
 
-        if song is not None:
-            if 'artist' in song:
-                #Getting info from Last.FM
+    def __init__(self):
+        self.backend = spotify(self)
+        self.backend.loop()
 
-                artist = song['artist'] if 'artist' in song else ''
-                title = song['title'] if 'title' in song else ''
-                print "Fetching info for " +artist+" - "+title+" from Last.FM"
-                try:
-                    network = pylast.get_lastfm_network(api_key = API_KEY)
-                    track = network.get_track(artist, title)
-                    album = track.get_album()
-                    url = album.get_cover_image(size = 1) #Equals medium size (best speed/quality compromise)
-                    albumname = album.get_name()
-                    import urllib2
-                    coverfile = urllib2.urlopen(url)
-                    output = open(CURRENT_DIR + 'spotifynotify_cover.jpg','wb')
-                    output.write(coverfile.read())
-                    output.close()
-                    release_date = album.get_release_date()
-                    if (release_date): #Lousy check, needs to be fixed in case last.fm changes date data
-                        release_string = release_date.split(" ")[2]
-                        release_string = release_string.split(",")[0]
-                        release_string = " ("+release_string+")"
-                    else:
-                        release_string = ""
-                    cover_image = CURRENT_DIR + 'spotifynotify_cover.jpg'
-                except Exception as e:
-                    print "Exception: ", e
-                    print "Couldn't find song/cover in music database, using default image..."
-                    albumname = release_string =  ""
-                    cover_image = CURRENT_DIR + 'icon_spotify.png'
+    def on_track_change(self, song):
+        if song != self.oldsong:
+            self.oldsong = song
 
-                #Showing notification
-                n = pynotify.Notification (artist,
-                    title +'\n '+
-                    albumname +release_string,
-                    cover_image)
-                if (old_id is not None):
-                    print "old_id:", old_id
-                    n.props.id = old_id
+            if song is not None:
+                if 'artist' in song:
+                    #Getting info from Last.FM
 
-                n.show()
-                old_id = n.props.id
-                print "saving old_id:", old_id
+                    artist = song['artist'] if 'artist' in song else ''
+                    title = song['title'] if 'title' in song else ''
+                    print "Fetching info for " +artist+" - "+title+" from Last.FM"
+                    try:
+                        network = pylast.get_lastfm_network(api_key = API_KEY)
+                        track = network.get_track(artist, title)
+                        album = track.get_album()
+                        url = album.get_cover_image(size = 1) #Equals medium size (best speed/quality compromise)
+                        albumname = album.get_name()
+                        import urllib2
+                        coverfile = urllib2.urlopen(url)
+                        output = open(CURRENT_DIR + 'spotifynotify_cover.jpg','wb')
+                        output.write(coverfile.read())
+                        output.close()
+                        release_date = album.get_release_date()
+                        if (release_date): #Lousy check, needs to be fixed in case last.fm changes date data
+                            release_string = release_date.split(" ")[2]
+                            release_string = release_string.split(",")[0]
+                            release_string = " ("+release_string+")"
+                        else:
+                            release_string = ""
+                        cover_image = CURRENT_DIR + 'spotifynotify_cover.jpg'
+                    except Exception as e:
+                        print "Exception: ", e
+                        print "Couldn't find song/cover in music database, using default image..."
+                        albumname = release_string =  ""
+                        cover_image = CURRENT_DIR + 'icon_spotify.png'
+
+                    #Showing notification
+                    n = pynotify.Notification (artist,
+                        title +'\n '+
+                        albumname +release_string,
+                        cover_image)
+                    if (self.old_id is not None):
+                        print "old_id:", self.old_id
+                        n.props.id = self.old_id
+
+                    n.show()
+                    self.old_id = n.props.id
+                    print "saving old_id:", self.old_id
 
 
 if __name__ == "__main__":
@@ -74,6 +77,5 @@ if __name__ == "__main__":
         print "You need to have a working pynotify-library installed.\nIf you are using Ubuntu, try \"sudo apt-get install python-notify\""
         sys.exit (1)
 
-    s = spotify(update_handler)
-    s.loop()
+    SpotifyNotify()
 

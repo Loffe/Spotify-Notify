@@ -9,8 +9,8 @@ import gobject, gtk
 
 class SpotifyNotify(): 
     
-    def __init__(self, object, update_handler):
-        self.on_update = update_handler
+    def __init__(self, object, listener):
+        self.listener = listener
 
         self.bus = object
         self.spotifyservice = self.bus.get_object('com.spotify.qt', '/TrackList')
@@ -27,7 +27,7 @@ class SpotifyNotify():
 
         if "artist" in data:
             song = {'artist': data["artist"], 'title': data["title"]}
-            self.on_update(song)
+            self.listener.on_track_change(song)
 
 class spotify(object):
     def __init__(self, update_handler):
