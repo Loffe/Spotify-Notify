@@ -58,31 +58,29 @@ class SpotifyNotify(object):
             self.cover_image = CURRENT_DIR + 'icon_spotify.png'
 
     def on_track_change(self, song):
-        if song != self.oldsong:
+        if song != self.oldsong and song is not None:
             self.oldsong = song
+            if 'artist' in song:
+                #Getting info from Last.FM
 
-            if song is not None:
-                if 'artist' in song:
-                    #Getting info from Last.FM
+                artist = song['artist'] if 'artist' in song else ''
+                title = song['title'] if 'title' in song else ''
+                album = song['album'] if 'album' in song else None
+                print "Fetching info for " +artist+" - "+title+" from Last.FM"
+                coverData = self.fetchAlbumCover(artist, title, album)
 
-                    artist = song['artist'] if 'artist' in song else ''
-                    title = song['title'] if 'title' in song else ''
-                    album = song['album'] if 'album' in song else None
-                    print "Fetching info for " +artist+" - "+title+" from Last.FM"
-                    coverData = self.fetchAlbumCover(artist, title, album)
+                #Showing notification
+                n = pynotify.Notification (artist,
+                    title +'\n '+
+                    self.albumname + self.release_string,
+                    self.cover_image)
 
-                    #Showing notification
-                    n = pynotify.Notification (artist,
-                        title +'\n '+
-                        self.albumname + self.release_string,
-                        self.cover_image)
+                # Save notification id to replace popups
+                if (self.old_id is not None):
+                    n.props.id = self.old_id
 
-                    # Save notification id to replace popups
-                    if (self.old_id is not None):
-                        n.props.id = self.old_id
-
-                    n.show()
-                    self.old_id = n.props.id
+                n.show()
+                self.old_id = n.props.id
 
 
 if __name__ == "__main__":
