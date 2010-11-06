@@ -17,6 +17,7 @@ TMP_DIR = tempfile.gettempdir() + "/"
 class SpotifyNotify(object):
     oldsong = None
     old_id = None
+    cover_image = None
 
     def __init__(self):
         try:
