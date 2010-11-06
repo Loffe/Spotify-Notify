@@ -15,8 +15,9 @@ API_KEY = '73f8547fa82ecbd0d0313f063c29571d' #spotify-notify's Last.fm API key
 CURRENT_DIR = os.path.abspath(os.curdir).replace(';','')+"/"
 
 oldsong = None
+old_id = None
 def update_handler(song):
-    global oldsong
+    global oldsong, old_id
     #song['artist'] = "Midlake"
     #song['title'] = "Roscoe"
     if song != oldsong:
@@ -53,12 +54,19 @@ def update_handler(song):
                     print "Couldn't find song/cover in music database, using default image..."
                     albumname = release_string =  ""
                     cover_image = CURRENT_DIR + 'icon_spotify.png'
+
                 #Showing notification
                 n = pynotify.Notification (artist,
                     title +'\n '+
                     albumname +release_string,
                     cover_image)
-                n.show ()
+                if (old_id is not None):
+                    print "old_id:", old_id
+                    n.props.id = old_id
+
+                n.show()
+                old_id = n.props.id
+                print "saving old_id:", old_id
 
 
 if __name__ == "__main__":
