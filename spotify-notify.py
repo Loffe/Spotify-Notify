@@ -22,6 +22,38 @@ class SpotifyNotify(object):
         self.backend = spotify(self)
         self.backend.loop()
 
+    def fetchAlbumCover(self, artist, title, album = None):
+        try:
+            network = pylast.get_lastfm_network(api_key = API_KEY)
+
+            if (album is None):
+                track = network.get_track(artist, title)
+                album = track.get_album()
+            else:
+                album = network.get_album(artist, album)
+
+            url = album.get_cover_image(size = 1) #Equals medium size (best speed/quality compromise)
+            self.albumname = album.get_name()
+            import urllib2
+            coverfile = urllib2.urlopen(url)
+            output = open(CURRENT_DIR + 'spotifynotify_cover.jpg','wb')
+            output.write(coverfile.read())
+            output.close()
+            release_date = album.get_release_date()
+            if (release_date): #Lousy check, needs to be fixed in case last.fm changes date data
+                release_string = release_date.split(" ")[2]
+                release_string = release_string.split(",")[0]
+                release_string = " ("+release_string+")"
+            else:
+                release_string = ""
+            self.release_string = release_string
+            self.cover_image = CURRENT_DIR + 'spotifynotify_cover.jpg'
+        except Exception as e:
+            print "Exception: ", e
+            print "Couldn't find song/cover in music database, using default image..."
+            self.albumname = release_string =  ""
+            self.cover_image = CURRENT_DIR + 'icon_spotify.png'
+
     def on_track_change(self, song):
         if song != self.oldsong:
             self.oldsong = song
@@ -32,44 +64,22 @@ class SpotifyNotify(object):
 
                     artist = song['artist'] if 'artist' in song else ''
                     title = song['title'] if 'title' in song else ''
+                    album = song['album'] if 'album' in song else None
                     print "Fetching info for " +artist+" - "+title+" from Last.FM"
-                    try:
-                        network = pylast.get_lastfm_network(api_key = API_KEY)
-                        track = network.get_track(artist, title)
-                        album = track.get_album()
-                        url = album.get_cover_image(size = 1) #Equals medium size (best speed/quality compromise)
-                        albumname = album.get_name()
-                        import urllib2
-                        coverfile = urllib2.urlopen(url)
-                        output = open(CURRENT_DIR + 'spotifynotify_cover.jpg','wb')
-                        output.write(coverfile.read())
-                        output.close()
-                        release_date = album.get_release_date()
-                        if (release_date): #Lousy check, needs to be fixed in case last.fm changes date data
-                            release_string = release_date.split(" ")[2]
-                            release_string = release_string.split(",")[0]
-                            release_string = " ("+release_string+")"
-                        else:
-                            release_string = ""
-                        cover_image = CURRENT_DIR + 'spotifynotify_cover.jpg'
-                    except Exception as e:
-                        print "Exception: ", e
-                        print "Couldn't find song/cover in music database, using default image..."
-                        albumname = release_string =  ""
-                        cover_image = CURRENT_DIR + 'icon_spotify.png'
+                    coverData = self.fetchAlbumCover(artist, title, album)
 
                     #Showing notification
                     n = pynotify.Notification (artist,
                         title +'\n '+
-                        albumname +release_string,
-                        cover_image)
+                        self.albumname + self.release_string,
+                        self.cover_image)
+
+                    # Save notification id to replace popups
                     if (self.old_id is not None):
-                        print "old_id:", self.old_id
                         n.props.id = self.old_id
 
                     n.show()
                     self.old_id = n.props.id
-                    print "saving old_id:", self.old_id
 
 
 if __name__ == "__main__":
