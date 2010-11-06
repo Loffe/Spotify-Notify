@@ -8,9 +8,11 @@ print "Spotify-notify v0.1"
 import os, time, sys, datetime, string
 import pynotify
 import pylast
+import tempfile
 
 API_KEY = '73f8547fa82ecbd0d0313f063c29571d' #spotify-notify's Last.fm API key
 CURRENT_DIR = os.path.abspath(os.curdir).replace(';','')+"/"
+TMP_DIR = tempfile.gettempdir() + "/"
 
 class SpotifyNotify(object):
     oldsong = None
@@ -39,7 +41,12 @@ class SpotifyNotify(object):
             self.albumname = album.get_name()
             import urllib2
             coverfile = urllib2.urlopen(url)
-            output = open(CURRENT_DIR + 'spotifynotify_cover.jpg','wb')
+
+            # Remove old tmp if any
+            if self.cover_image and os.path.exists(self.cover_image):
+                os.unlink(self.cover_image)
+
+            output = tempfile.NamedTemporaryFile(prefix="spotifynotify_cover", suffix=".jpg",delete=False)
             output.write(coverfile.read())
             output.close()
             release_date = album.get_release_date()
@@ -50,12 +57,13 @@ class SpotifyNotify(object):
             else:
                 release_string = ""
             self.release_string = release_string
-            self.cover_image = CURRENT_DIR + 'spotifynotify_cover.jpg'
+            #self.cover_image = TMP_DIR + 'spotifynotify_cover.jpg'
+            self.cover_image = output.name
         except Exception as e:
             print "Exception: ", e
             print "Couldn't find song/cover in music database, using default image..."
             self.albumname = self.release_string =  ""
-            self.cover_image = CURRENT_DIR + 'icon_spotify.png'
+            self.cover_image = None
 
     def on_track_change(self, song):
         if song != self.oldsong and song is not None:
@@ -69,11 +77,15 @@ class SpotifyNotify(object):
                 print "Fetching info for " +artist+" - "+title+" from Last.FM"
                 coverData = self.fetchAlbumCover(artist, title, album)
 
+                if self.cover_image:
+                    cover_image = self.cover_image
+                else:
+                    cover_image = CURRENT_DIR + 'icon_spotify.png'
                 #Showing notification
                 n = pynotify.Notification (artist,
                     title +'\n '+
                     self.albumname + self.release_string,
-                    self.cover_image)
+                    cover_image)
 
                 # Save notification id to replace popups
                 if (self.old_id is not None):
