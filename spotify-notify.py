@@ -8,8 +8,8 @@ print "Spotify-notify v0.1"
 import os, time, sys, datetime, string
 import pynotify
 import pylast
-from spotify_notify_dbus import spotify
-#from spotify_notify_xlib import spotify
+import  spotify_notify_dbus
+import  spotify_notify_xlib
 
 API_KEY = '73f8547fa82ecbd0d0313f063c29571d' #spotify-notify's Last.fm API key
 CURRENT_DIR = os.path.abspath(os.curdir).replace(';','')+"/"
@@ -19,7 +19,10 @@ class SpotifyNotify(object):
     old_id = None
 
     def __init__(self):
-        self.backend = spotify(self)
+        try:
+            self.backend = spotify_notify_dbus.spotify(self)
+        except:
+            self.backend = spotify_notify_xlib.spotify(self)
         self.backend.loop()
 
     def fetchAlbumCover(self, artist, title, album = None):
@@ -51,7 +54,7 @@ class SpotifyNotify(object):
         except Exception as e:
             print "Exception: ", e
             print "Couldn't find song/cover in music database, using default image..."
-            self.albumname = release_string =  ""
+            self.albumname = self.release_string =  ""
             self.cover_image = CURRENT_DIR + 'icon_spotify.png'
 
     def on_track_change(self, song):
