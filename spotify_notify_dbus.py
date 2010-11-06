@@ -26,7 +26,10 @@ class SpotifyNotify():
         data = trackChange[0]
 
         if "artist" in data:
-            song = {'artist': data["artist"], 'title': data["title"]}
+            song = {
+                    'artist': data["artist"].encode("latin-1"),
+                    'title': data["title"].encode("latin-1"),
+                    'album': data["album"].encode("latin-1")}
             self.listener.on_track_change(song)
 
 class spotify(object):
