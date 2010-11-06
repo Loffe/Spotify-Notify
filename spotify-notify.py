@@ -27,6 +27,13 @@ class SpotifyNotify(object):
             self.backend = spotify_notify_xlib.spotify(self)
         self.backend.loop()
 
+    """
+    Clean up tmp cover image (if any)
+    """
+    def __del__(self):
+        if self.cover_image and os.path.exists(self.cover_image):
+            os.unlink(self.cover_image)
+
     def fetchAlbumCover(self, artist, title, album = None):
         try:
             network = pylast.get_lastfm_network(api_key = API_KEY)
