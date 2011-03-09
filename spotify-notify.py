@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- encoding: utf8 -*-
 #
 # Spotify-Notify - Notifications and media keys support for Spotify
 # Copyright (C) 2011 Victor Koronen and contributors
@@ -19,8 +20,10 @@
 #
 
 import os, time, sys, datetime, string, re
+import urllib2
 import pynotify
 import tempfile
+import webbrowser
 
 sys.path.append("./lib")
 import pylast
@@ -69,7 +72,6 @@ class SpotifyNotify(object):
 
             url = album.get_cover_image(size = 1) #Equals medium size (best speed/quality compromise)
             self.albumname = album.get_name()
-            import urllib2
             coverfile = urllib2.urlopen(url)
 
             # Remove old tmp if any
@@ -97,7 +99,6 @@ class SpotifyNotify(object):
 
     def fetchCoverImageSpotify(self, trackid):
         try:
-            import urllib2
             url = SPOTIFY_OPEN_URL + trackid
             tracksite = urllib2.urlopen(url).read()
             matchobject = re.search('/image/(.*)" alt', tracksite)
@@ -155,6 +156,15 @@ class SpotifyNotify(object):
                 # show the notification
                 n.show()
                 self.old_id = n.props.id
+
+            # show link to lyrics on lyric wiki
+            if True:
+                def e(s):
+                    return "_".join(map(urllib2.quote, s.title().split(" ")))
+
+                url = "http://lyrics.wikia.com/%s:%s" % (e(artist), e(title))
+                print url
+                #webbrowser.open()
 
 """ main (duh!) """
 def main():
