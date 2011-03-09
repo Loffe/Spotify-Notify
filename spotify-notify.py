@@ -27,15 +27,16 @@ import pylast
 
 SPOTIFY_OPEN_URL = "http://open.spotify.com/track/"
 LASTFM_API_KEY = '73f8547fa82ecbd0d0313f063c29571d' #spotify-notify's Last.fm API key
-CURRENT_DIR = os.path.abspath(os.curdir).replace(';','')+"/"
-TMP_DIR = tempfile.gettempdir() + "/"
+CURRENT_DIR = os.path.abspath(os.curdir)+'/'
+TMP_DIR = tempfile.gettempdir() + '/'
 
 class SpotifyNotify(object):
-    oldsong = None
-    old_id = None
-
     """ constructor """
     def __init__(self):
+        # initialize fields
+        self.oldmeta = None
+        self.old_id = None
+
         # choose backend
         try:
             import spotify_notify_dbus
@@ -118,42 +119,54 @@ class SpotifyNotify(object):
             self.cover_image = None
             return 0 
 
-    def on_track_change(self, song):
-        if song != self.oldsong and song is not None:
-            self.oldsong = song
-            if 'artist' in song:
-                artist = song['artist'] if 'artist' in song else ''
-                title = song['title'] if 'title' in song else ''
-                album = song['album'] if 'album' in song else None
-                track_id = song['track_id'] if 'track_id' in song else None
+    """ called on track change """
+    def on_track_change(self, meta):
+        # check if it really was a track change
+        if meta != self.oldmeta and meta is not None:
+            # old meta is now new meta
+            self.oldmeta = meta
+
+            # hack to see if there is any metadata in meta
+            if 'artist' in meta:
+                artist = meta['artist'] if 'artist' in meta else '(no artist)'
+                title = meta['title'] if 'title' in meta else '(no title)'
+                album = meta['album'] if 'album' in meta else '(no album)'
+                created = meta['created'] if 'created' in meta else '0000-00-00 00:00 UTC'
+                year = int(created[:4])
+                track_id = meta['track_id'] if 'track_id' in meta else None
                 
                 #TODO: enable choise
                 #coverData = self.fetchLastFmAlbumCover(artist, title, album)
                 self.fetchCoverImageSpotify(track_id)
 
+                # use cover image if available, otherwise just use the logo
                 if self.cover_image:
                     cover_image = self.cover_image
                 else:
                     cover_image = CURRENT_DIR + 'icon_spotify.png'
-                #Showing notification
-                n = pynotify.Notification(artist, '<i>'+title +'</i>\n '+ album, cover_image)
 
-                # Save notification id to replace popups
-                if (self.old_id is not None):
+                # create notification
+                n = pynotify.Notification(artist, '<i>%s</i>\n%s (%04d)' % (title, album, year), cover_image)
+
+                # save notification id to replace popups
+                if self.old_id is not None:
                     n.props.id = self.old_id
 
+                # show the notification
                 n.show()
                 self.old_id = n.props.id
 
 """ main (duh!) """
 def main():
-    if not pynotify.init("icon-summary-body"):
-        print "You need to have a working pynotify-library installed.\nIf you are using Ubuntu, try \"sudo apt-get install python-notify\""
+    # dependency check
+    if not pynotify.init('icon-summary-body'):
+        print 'You need to have a working pynotify-library installed.\nIf you are using Ubuntu, try "sudo apt-get install python-notify"'
         sys.exit(1)
 
+    # run!
     sn = SpotifyNotify()
     sn.run()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
 
