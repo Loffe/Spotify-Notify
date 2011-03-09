@@ -111,28 +111,23 @@ class SpotifyNotify(object):
             self.tmpfile.write(data)
             self.tmpfile.close()
             self.cover_image = self.tmpfilename
-            self.albumname = "HERP"
-            self.release_string = "DERP"
             return 1
         except Exception, e:
             print "Couldn't fetch cover image"
             print e
             self.cover_image = None
-            self.albumname = "HERP"
-            self.release_string = "DERP"
             return 0 
 
     def on_track_change(self, song):
         if song != self.oldsong and song is not None:
             self.oldsong = song
             if 'artist' in song:
-                #Getting info from Last.FM
-
                 artist = song['artist'] if 'artist' in song else ''
                 title = song['title'] if 'title' in song else ''
                 album = song['album'] if 'album' in song else None
                 track_id = song['track_id'] if 'track_id' in song else None
                 
+                #TODO: enable choise
                 #coverData = self.fetchLastFmAlbumCover(artist, title, album)
                 self.fetchCoverImageSpotify(track_id)
 
@@ -141,9 +136,7 @@ class SpotifyNotify(object):
                 else:
                     cover_image = CURRENT_DIR + 'icon_spotify.png'
                 #Showing notification
-                n = pynotify.Notification(artist,
-                    title +'\n '+
-                    self.albumname + self.release_string, cover_image)
+                n = pynotify.Notification(artist, '<i>'+title +'</i>\n '+ album, cover_image)
 
                 # Save notification id to replace popups
                 if (self.old_id is not None):
