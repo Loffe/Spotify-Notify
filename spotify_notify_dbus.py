@@ -18,7 +18,7 @@ import dbus
 from dbus.mainloop.glib import DBusGMainLoop
 import gobject, gtk
 
-class spotify(object):
+class SpotifyDBus(object):
     def __init__(self, listener):
         DBusGMainLoop(set_as_default=True)
         self.listener = listener
@@ -39,7 +39,8 @@ class spotify(object):
 
     def executeCommand(self, key):
         if (key):
-            self.connect()
+            #self.connect()
+            self.spotifyservice = self.bus.get_object('com.spotify.qt', '/org/mpris/MediaPlayer2')
             self.cmd = self.spotifyservice.get_dbus_method(key, 'org.mpris.MediaPlayer2.Player')
             self.cmd()
         
@@ -47,6 +48,7 @@ class spotify(object):
         for key in mmkeys:
             #print key
             if key == "Play":
+                key = "PlayPause"
                 self.executeCommand(key)
             elif key == "Stop":
                 key = "Pause"
@@ -54,7 +56,6 @@ class spotify(object):
             elif key == "Next":
                 self.executeCommand(key)
             elif key == "Previous":
-                key = "Prev"
                 self.executeCommand(key)
 
     def trackChange2(self, *trackChange):
@@ -65,12 +66,15 @@ class spotify(object):
 
     def trackChange(self, *trackChange):
         data = trackChange[0]
-        print data
+        #print data
+#dbus.Dictionary({dbus.String(u'xesam:album'): dbus.String(u'Worms 2 - Original Game Soundtrack', variant_level=1), dbus.String(u'xesam:title'): dbus.String(u'Pink Bravery', variant_level=1), dbus.String(u'xesam:trackNumber'): dbus.Int32(7, variant_level=1), dbus.String(u'xesam:artist'): dbus.String(u'Bj\xc3\xb8rn Lynne', variant_level=1), dbus.String(u'xesam:discNumber'): dbus.Int32(0, variant_level=1), dbus.String(u'mpris:trackid'): dbus.String(u'spotify:track:2VgL21XC3E7FTydxysLRe3', variant_level=1), dbus.String(u'mpris:length'): dbus.UInt64(263000000L, variant_level=1), dbus.String(u'xesam:autoRating'): dbus.Double(0.19, variant_level=1), dbus.String(u'xesam:contentCreated'): dbus.String(u'1998-01-01T00:00:00', variant_level=1), dbus.String(u'xesam:url'): dbus.String(u'spotify:track:2VgL21XC3E7FTydxysLRe3', variant_level=1)}, signature=dbus.Signature('sv'))
         if "xesam:artist" in data:
             song = {
-                    'artist': data["xesam:artist"].encode("latin-1"),
-                    'title': data["xesam:title"].encode("latin-1"),
-                    'album': data["xesam:album"].encode("latin-1")}
+                'artist': data["xesam:artist"].encode("latin-1"),
+                'title': data["xesam:title"].encode("latin-1"),
+                'album': data["xesam:album"].encode("latin-1"),
+                'track_id': data["mpris:trackid"].split(":", 3)[2].encode("latin-1")
+            }
             self.listener.on_track_change(song)
 
     def loop(self):

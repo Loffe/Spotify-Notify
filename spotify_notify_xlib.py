@@ -21,7 +21,7 @@ except:
 	print "You need the xlib-library. If you are using Ubuntu, try running\n\"sudo apt-get install python-xlib\""
 	sys.exit(1)
 
-class spotify(object):
+class SpotifyXLib(object):
     def __init__(self, listener):
         self.listener = listener
         self._dsp = display.Display()

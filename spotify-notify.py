@@ -18,11 +18,12 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #
 
-import os, time, sys, datetime, string
+import os, time, sys, datetime, string, re
 import pynotify
 import pylast
 import tempfile
 
+SPOTIFY_OPEN_URL = "http://open.spotify.com/track/"
 API_KEY = '73f8547fa82ecbd0d0313f063c29571d' #spotify-notify's Last.fm API key
 CURRENT_DIR = os.path.abspath(os.curdir).replace(';','')+"/"
 TMP_DIR = tempfile.gettempdir() + "/"
@@ -34,10 +35,10 @@ class SpotifyNotify(object):
     def __init__(self):
         try:
             import  spotify_notify_dbus
-            self.backend = spotify_notify_dbus.spotify(self)
+            self.backend = spotify_notify_dbus.SpotifyDBus(self)
         except:
             import  spotify_notify_xlib
-            self.backend = spotify_notify_xlib.spotify(self)
+            self.backend = spotify_notify_xlib.SpotifyXLib(self)
         self.backend.loop()
 
     """
@@ -86,10 +87,9 @@ class SpotifyNotify(object):
             self.albumname = self.release_string =  ""
             self.cover_image = None
 
-    def fetchCoverImageSpotify(self, trackhash):
+    def fetchCoverImageSpotify(self, trackid):
         try:
             import urllib2
-            trackid = trackhash.split(":")[2]
             url = SPOTIFY_OPEN_URL + trackid
             tracksite = urllib2.urlopen(url).read()
             matchobject = re.search('/image/(.*)" alt', tracksite)
@@ -103,10 +103,16 @@ class SpotifyNotify(object):
             data = coverfile.read()
             self.tmpfile.write(data)
             self.tmpfile.close()
+            self.cover_image = self.tmpfilename
+            self.albumname = "HERP"
+            self.release_string = "DERP"
             return 1
         except Exception, e:
             print "Couldn't fetch cover image"
             print e
+            self.cover_image = None
+            self.albumname = "HERP"
+            self.release_string = "DERP"
             return 0 
 
     def on_track_change(self, song):
@@ -118,18 +124,19 @@ class SpotifyNotify(object):
                 artist = song['artist'] if 'artist' in song else ''
                 title = song['title'] if 'title' in song else ''
                 album = song['album'] if 'album' in song else None
+                track_id = song['track_id'] if 'track_id' in song else None
                 
-                coverData = self.fetchLastFmAlbumCover(artist, title, album)
+                #coverData = self.fetchLastFmAlbumCover(artist, title, album)
+                self.fetchCoverImageSpotify(track_id)
 
                 if self.cover_image:
                     cover_image = self.cover_image
                 else:
                     cover_image = CURRENT_DIR + 'icon_spotify.png'
                 #Showing notification
-                n = pynotify.Notification (artist,
+                n = pynotify.Notification(artist,
                     title +'\n '+
-                    self.albumname + self.release_string,
-                    cover_image)
+                    self.albumname + self.release_string, cover_image)
 
                 # Save notification id to replace popups
                 if (self.old_id is not None):
