@@ -1,10 +1,13 @@
-#!/usr/bin/python -OO
-# Spotify-notify
-# By Erik Eloff (erik@eloff.se)
-# Original code by noalwin (lambda512@gmail.com)
-#                  SveinT (sveint@gmail.com)
-# Based on pypanel code
-print "Spotify-notify v0.1"
+#!/usr/bin/env python
+
+# Spotify-Notify
+#
+# By Victor Koronen <koronen@kth.se>
+# Fork from Erik Eloff <erik@eloff.se>
+# Original code by noalwin <lambda512@gmail.com>
+#              and SveinT <sveint@gmail.com>
+#
+
 import os, time, sys, datetime, string
 import pynotify
 import pylast
@@ -101,11 +104,10 @@ class SpotifyNotify(object):
                 n.show()
                 self.old_id = n.props.id
 
-
 if __name__ == "__main__":
-    if not pynotify.init ("icon-summary-body"):
+    if not pynotify.init("icon-summary-body"):
         print "You need to have a working pynotify-library installed.\nIf you are using Ubuntu, try \"sudo apt-get install python-notify\""
-        sys.exit (1)
+        sys.exit(1)
 
     SpotifyNotify()
 

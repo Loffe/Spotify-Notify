@@ -60,7 +60,6 @@ class spotify(object):
                     'album': data["xesam:album"].encode("latin-1")}
             self.listener.on_track_change(song)
 
-
     def loop(self):
         gtk.main()
 
