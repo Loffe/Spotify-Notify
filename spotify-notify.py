@@ -147,7 +147,7 @@ class SpotifyNotify(object):
                     cover_image = CURRENT_DIR + 'icon_spotify.png'
 
                 # create notification
-                n = pynotify.Notification(artist, '<i>%s</i>\n%s (%04d)' % (title, album, year), cover_image)
+                n = pynotify.Notification(title, '<i>%s</i>\n%s (%04d)' % (artist, album, year), cover_image)
 
                 # save notification id to replace popups
                 if self.old_id is not None:
