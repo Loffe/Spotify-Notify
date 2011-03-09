@@ -20,8 +20,9 @@
 
 import os, time, sys, datetime, string, re
 import pynotify
-import pylast
 import tempfile
+sys.path.append("./lib")
+import pylast
 
 SPOTIFY_OPEN_URL = "http://open.spotify.com/track/"
 API_KEY = '73f8547fa82ecbd0d0313f063c29571d' #spotify-notify's Last.fm API key
