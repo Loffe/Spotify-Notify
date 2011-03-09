@@ -47,8 +47,9 @@ class SpotifyNotify(object):
         if self.cover_image and os.path.exists(self.cover_image):
             os.unlink(self.cover_image)
 
-    def fetchAlbumCover(self, artist, title, album = None):
+    def fetchLastFmAlbumCover(self, artist, title, album = None):
         try:
+            print "Fetching info for " +artist+" - "+title+" from Last.FM"
             network = pylast.get_lastfm_network(api_key = API_KEY)
 
             if (album is None):
@@ -85,6 +86,29 @@ class SpotifyNotify(object):
             self.albumname = self.release_string =  ""
             self.cover_image = None
 
+    def fetchCoverImageSpotify(self, trackhash):
+        try:
+            import urllib2
+            trackid = trackhash.split(":")[2]
+            url = SPOTIFY_OPEN_URL + trackid
+            tracksite = urllib2.urlopen(url).read()
+            matchobject = re.search('/image/(.*)" alt', tracksite)
+            imageurl = "http://open.spotify.com/image/" + matchobject.group(1)
+            if not (imageurl):
+                print "No cover available"
+                raise()
+            coverfile = urllib2.urlopen(imageurl)
+            (fd, self.tmpfilename) = tempfile.mkstemp()
+            self.tmpfile = os.fdopen(fd, 'wb')
+            data = coverfile.read()
+            self.tmpfile.write(data)
+            self.tmpfile.close()
+            return 1
+        except Exception, e:
+            print "Couldn't fetch cover image"
+            print e
+            return 0 
+
     def on_track_change(self, song):
         if song != self.oldsong and song is not None:
             self.oldsong = song
@@ -94,8 +118,8 @@ class SpotifyNotify(object):
                 artist = song['artist'] if 'artist' in song else ''
                 title = song['title'] if 'title' in song else ''
                 album = song['album'] if 'album' in song else None
-                print "Fetching info for " +artist+" - "+title+" from Last.FM"
-                coverData = self.fetchAlbumCover(artist, title, album)
+                
+                coverData = self.fetchLastFmAlbumCover(artist, title, album)
 
                 if self.cover_image:
                     cover_image = self.cover_image
