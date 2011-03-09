@@ -4,6 +4,11 @@ Spotify-notify is a notifier for currently playing song in Spotify on a linux sy
 
 The script uses last.fm in order to fetch album cover and data.
 
+= Authors =
+Current branch by Victor Koronen <koronen@kth.se>
+Fork from Erik Eloff <erik@eloff.se>
+Original code by noalwin <lambda512@gmail.com> and SveinT <sveint@gmail.com>
+
 = Getting started =
 
 As for now, the script is run seperately from Spotify. Plans are to make the script launch Spotify and automatically stop running when you close Spotify.
