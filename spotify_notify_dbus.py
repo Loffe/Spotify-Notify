@@ -1,7 +1,6 @@
 #Spotify media keys script by SveinT (sveint@gmail.com)
 #Initial version
 
-
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
 import gobject, gtk
@@ -12,8 +11,10 @@ class spotify(object):
         self.listener = listener
         self.bus = dbus.Bus(dbus.Bus.TYPE_SESSION)
 
-        self.spotifyservice = self.bus.get_object('com.spotify.qt', '/TrackList')
+        #self.spotifyservice = self.bus.get_object('com.spotify.qt', '/TrackList')
+        self.spotifyservice = self.bus.get_object('com.spotify.qt', '/org/mpris/MediaPlayer2')
         self.spotifyservice.connect_to_signal('TrackChange', self.trackChange)
+        self.spotifyservice.connect_to_signal('PropertiesChanged', self.trackChange2)
         self.bus_object = self.bus.get_object(
             'org.gnome.SettingsDaemon', '/org/gnome/SettingsDaemon/MediaKeys')
 
@@ -25,7 +26,8 @@ class spotify(object):
 
     def executeCommand(self, key):
         if (key):
-            self.cmd = self.spotifyservice.get_dbus_method(key, 'org.freedesktop.MediaPlayer')
+            self.connect()
+            self.cmd = self.spotifyservice.get_dbus_method(key, 'org.mpris.MediaPlayer2.Player')
             self.cmd()
         
     def handle_mediakey(self, *mmkeys):
@@ -42,15 +44,23 @@ class spotify(object):
                 key = "Prev"
                 self.executeCommand(key)
 
+    def trackChange2(self, *trackChange):
+        self.spotifyservice = self.bus.get_object('com.spotify.qt', '/')
+        self.cmd = self.spotifyservice.get_dbus_method('GetMetadata', 'org.freedesktop.MediaPlayer2')
+        self.new  = self.cmd()
+        self.trackChange(self.new)
+
     def trackChange(self, *trackChange):
         data = trackChange[0]
-        if "artist" in data:
+        print data
+        if "xesam:artist" in data:
             song = {
-                    'artist': data["artist"].encode("latin-1"),
-                    'title': data["title"].encode("latin-1"),
-                    'album': data["album"].encode("latin-1")}
+                    'artist': data["xesam:artist"].encode("latin-1"),
+                    'title': data["xesam:title"].encode("latin-1"),
+                    'album': data["xesam:album"].encode("latin-1")}
             self.listener.on_track_change(song)
 
 
     def loop(self):
         gtk.main()
+
