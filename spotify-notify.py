@@ -21,11 +21,12 @@
 import os, time, sys, datetime, string, re
 import pynotify
 import tempfile
+
 sys.path.append("./lib")
 import pylast
 
 SPOTIFY_OPEN_URL = "http://open.spotify.com/track/"
-API_KEY = '73f8547fa82ecbd0d0313f063c29571d' #spotify-notify's Last.fm API key
+LASTFM_API_KEY = '73f8547fa82ecbd0d0313f063c29571d' #spotify-notify's Last.fm API key
 CURRENT_DIR = os.path.abspath(os.curdir).replace(';','')+"/"
 TMP_DIR = tempfile.gettempdir() + "/"
 
@@ -33,13 +34,18 @@ class SpotifyNotify(object):
     oldsong = None
     old_id = None
 
+    """ constructor """
     def __init__(self):
+        # choose backend
         try:
-            import  spotify_notify_dbus
+            import spotify_notify_dbus
             self.backend = spotify_notify_dbus.SpotifyDBus(self)
         except:
-            import  spotify_notify_xlib
+            import spotify_notify_xlib
             self.backend = spotify_notify_xlib.SpotifyXLib(self)
+
+    """ runs the main (backend) loop """
+    def run(self):
         self.backend.loop()
 
     """
@@ -52,7 +58,7 @@ class SpotifyNotify(object):
     def fetchLastFmAlbumCover(self, artist, title, album = None):
         try:
             print "Fetching info for " +artist+" - "+title+" from Last.FM"
-            network = pylast.get_lastfm_network(api_key = API_KEY)
+            network = pylast.get_lastfm_network(api_key = LASTFM_API_KEY)
 
             if (album is None):
                 track = network.get_track(artist, title)
@@ -146,10 +152,15 @@ class SpotifyNotify(object):
                 n.show()
                 self.old_id = n.props.id
 
-if __name__ == "__main__":
+""" main (duh!) """
+def main():
     if not pynotify.init("icon-summary-body"):
         print "You need to have a working pynotify-library installed.\nIf you are using Ubuntu, try \"sudo apt-get install python-notify\""
         sys.exit(1)
 
-    SpotifyNotify()
+    sn = SpotifyNotify()
+    sn.run()
+
+if __name__ == "__main__":
+    main()
 
