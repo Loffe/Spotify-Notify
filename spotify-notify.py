@@ -157,15 +157,6 @@ class SpotifyNotify(object):
                 n.show()
                 self.old_id = n.props.id
 
-            # show link to lyrics on lyric wiki
-            if True:
-                def e(s):
-                    return "_".join(map(urllib2.quote, s.title().split(" ")))
-
-                url = "http://lyrics.wikia.com/%s:%s" % (e(artist), e(title))
-                print url
-                #webbrowser.open()
-
 """ main (duh!) """
 def main():
     # dependency check
