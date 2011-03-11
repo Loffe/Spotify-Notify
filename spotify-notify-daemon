@@ -62,7 +62,13 @@ class SpotifyNotifyDaemon(Daemon):
         self.cover_image = None
 
         # setup logger
-        logging.basicConfig(filename = LOG_FILE_NAME, level = LOG_LEVEL)
+        logging.basicConfig(
+            filename = LOG_FILE_NAME,
+            filemode = 'a+',
+            level = LOG_LEVEL,
+            format = '%(asctime)s %(levelname)-8s %(message)s',
+            datefmt = '%Y-%m-%d %H:%M:%S %Z'
+        )
 
 # TODO: handle SIGTERM
 #        # catch sigterm
