@@ -1,37 +1,30 @@
-== Spotify-notify ==
+== Spotify-Notify ==
 
-Spotify-notify is a notifier for currently playing song in Spotify on a linux system, using the notify-osd notifier (found in e.g. Ubuntu). It also includes support for media keys It is intended for use on Ubuntu systems - dependencies are notify-osd and python-indicate.
+Spotify-Notify is a daemon program used for displaying the currently playing song
+in Spotify on a Linux system, using the notify-osd notifier (found in e.g. Ubuntu).
+It also includes support for media keys.
+It is designed for and built on an Ubuntu system,
+but should work on any system supporting Python, DBus and notify-osd.
+Dependencies are notify-osd and python-indicate.
 
 The script uses last.fm in order to fetch album cover and data.
 
 = Authors =
-Current branch by Victor Koronen <koronen@kth.se>
-Fork from Erik Eloff <erik@eloff.se>
-Original code by noalwin <lambda512@gmail.com> and SveinT <sveint@gmail.com>
+
+Current branch by Victor Koronen <koronen@kth.se>.
+Fork from Erik Eloff <erik@eloff.se>.
+Original code by noalwin <lambda512@gmail.com> and SveinT <sveint@gmail.com>.
 
 = Getting started =
 
-As for now, the script is run seperately from Spotify. Plans are to make the script launch Spotify and automatically stop running when you close Spotify.
+To get the daemon running, you first need to check the dependencies listed above.
+Then it's simply a matter of
 
-These instructions apply to Ubuntu only (but may work on other Debian-based distros)
-
-To get it running, you first need to download the files. You'll find them in the "Downloads" section above. Unzip them to your home folder.
-
-Next, make sure you have the right dependencies. Open up a terminal (ALT + F2, then write "xterm") and write:
-
-    sudo apt-get install python-indicate 
-
-Navigate to the folder where you unpacked the zip-file. Then run the script by typing
-
-    python spotify-notify.py 
+  $ ./spotify-notify-daemon start
 
 = FAQ =
 
-Q: I have started the script before Spotify, why doesn't it work?
-A: As for now, please start the script after Spotify (will hopefully be fixed in next version).
-
-Q: I want to use the script just for the media key support. How can I do this?
-A: Edit the script file and set ENABLE_NOTIFY to 0.
-
 Q: Do I need Ubuntu to use this script? Will others distros work?
-A: As the script uses the Ubuntu sound inidicator Ubuntu is required. Indicator dependencies should be easy to remove, however, if you wish to do so.
+A: For the sound inidicator applet, Ubuntu is required.
+   Otherwise, it should work on other distros as well.
+
