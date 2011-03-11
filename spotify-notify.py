@@ -173,6 +173,16 @@ def main():
         print 'You need to have a working pynotify-library installed.\nIf you are using Ubuntu, try "sudo apt-get install python-notify"'
         sys.exit(1)
 
+    # indicate init
+    try:
+        import indicate
+        indicateserver = indicate.indicate_server_ref_default()
+        indicateserver.set_type("music.spotify")
+        indicateserver.set_desktop_file("/usr/share/applications/spotify.desktop")
+        indicateserver.show()
+    except:
+        pass
+
     # run!
     sn = SpotifyNotify()
     sn.run()
