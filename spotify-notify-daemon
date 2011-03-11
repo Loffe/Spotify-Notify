@@ -2,7 +2,7 @@
 # -*- encoding: utf8 -*-
 #
 # Spotify-Notify - Notifications and media keys support for Spotify
-# Copyright (C) 2011 Victor Koronen and contributors
+# Copyleft (C) 2011 Victor Koronen and contributors
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -24,21 +24,29 @@ __copyright__ = 'Copyleft (C) 2011 Victor Koronen and contributors'
 __version__ = '0.1'
 
 # import standard libraries
-import os, time, sys, datetime, string, re
+import os, time, sys, datetime, string, re, signal
 import urllib2
 import pynotify
 import tempfile
 import webbrowser
+import logging
 
 # import custom libraries
 sys.path.append(os.path.join(os.getcwd(), 'lib'))
 import pylast
 from daemon import Daemon
 
+# set constants
+LOG_LEVEL = logging.DEBUG
+LOG_FILE_NAME = os.path.expanduser('~/.spotify-notify-daemon.log')
+PID_FILE_NAME = os.path.expanduser('~/.spotify-notify-daemon.pid')
+#CONF_FILE_NAME = os.path.expanduser('~/.spotify-notify-daemonrc')
+
+CURRENT_DIR = os.path.join(os.path.abspath(os.curdir), '')
+TMP_DIR = os.path.join(tempfile.gettempdir(), '')
+
 SPOTIFY_OPEN_URL = 'http://open.spotify.com/track/'
 LASTFM_API_KEY = '73f8547fa82ecbd0d0313f063c29571d' #spotify-notify's Last.fm API key
-CURRENT_DIR = os.path.abspath(os.curdir)+'/'
-TMP_DIR = tempfile.gettempdir() + '/'
 
 #
 # The notification daemon
@@ -46,11 +54,25 @@ TMP_DIR = tempfile.gettempdir() + '/'
 class SpotifyNotifyDaemon(Daemon):
     def __init__(self):
         # init daemon
-        super(SpotifyNotifyDaemon, self).__init__(os.path.expanduser('~/.spotify-notify-daemon.pid'))
+        super(SpotifyNotifyDaemon, self).__init__(PID_FILE_NAME)
 
         # initialize fields
         self.old_meta = None
         self.old_id = None
+        self.cover_image = None
+
+        # setup logger
+        logging.basicConfig(filename = LOG_FILE_NAME, level = LOG_LEVEL)
+
+# TODO: handle SIGTERM
+#        # catch sigterm
+#        signal.signal(signal.SIGTERM, signal_handler)
+#
+#    def signal_handler(signum, frame):
+#        print('Signal handler called with signal %d %d'.format(signum, signal.SIGTERM))
+
+    def run(self):
+        logging.info('Starting up')
 
         # choose backend
         try:
@@ -60,28 +82,31 @@ class SpotifyNotifyDaemon(Daemon):
             import spotify_notify_xlib
             self.backend = spotify_notify_xlib.SpotifyXLib(self)
 
-    def run(self):
         # indicate init
         try:
+            logging.debug('Initializing indicator applet')
             import indicate
             indicateserver = indicate.indicate_server_ref_default()
             indicateserver.set_type('music.spotify')
             indicateserver.set_desktop_file('/usr/share/applications/spotify.desktop')
             indicateserver.show()
         except:
-            pass
+            logging.error('Cannot initialize indicator applet')
 
         # loop!
+        logging.debug('Entering main backend loop')
         self.backend.loop()
 
     """ On delete, clean up tmp cover image (if any) """
     def __del__(self):
+        logging.info('Shutting down')
+        logging.debug('Cleaning up cover image (if any)')
         if self.cover_image and os.path.exists(self.cover_image):
             os.unlink(self.cover_image)
 
     def fetchLastFmAlbumCover(self, artist, title, album = None):
+        logging.debug('Fetching cover for {0} - {1} from Last.FM'.format(artist, title))
         try:
-            #print "Fetching info for " +artist+" - "+title+" from Last.FM"
             network = pylast.get_lastfm_network(api_key = LASTFM_API_KEY)
 
             if (album is None):
@@ -118,6 +143,7 @@ class SpotifyNotifyDaemon(Daemon):
             self.cover_image = None
 
     def fetchCoverImageSpotify(self, trackid):
+        logging.debug('Fetching cover for {0} from Spotify'.format(trackid))
         try:
             url = SPOTIFY_OPEN_URL + trackid
             tracksite = urllib2.urlopen(url).read()
@@ -142,8 +168,11 @@ class SpotifyNotifyDaemon(Daemon):
 
     """ called on track change """
     def on_track_change(self, meta):
+        logging.debug('Track change handler triggered')
         # check if it really was a track change
         if meta != self.old_meta and meta is not None:
+            logging.debug('Detected new track')
+
             # old meta is now new meta
             self.old_meta = meta
 

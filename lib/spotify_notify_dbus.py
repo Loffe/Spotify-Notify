@@ -17,35 +17,41 @@
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
 import gobject, gtk
+import logging
 
 """ DBus interface """
 class SpotifyDBus(object):
     """ constructor """
     def __init__(self, listener):
-        DBusGMainLoop(set_as_default = True)
+        logging.info('Using DBus backend')
         self.listener = listener
-        self.bus = dbus.Bus(dbus.Bus.TYPE_SESSION)
+
+        # open bus
+        DBusGMainLoop(set_as_default = True)
+        self.dbus_bus = dbus.Bus(dbus.Bus.TYPE_SESSION)
+
+        # connect to service
+        logging.debug('Connecting to Spotify DBus service')
+        self.dbus_spotify_service = self.dbus_bus.get_object('com.spotify.qt', '/org/mpris/MediaPlayer2')
 
         # listen for track changes
-        self.spotifyservice = self.bus.get_object('com.spotify.qt', '/org/mpris/MediaPlayer2')
-        self.spotifyservice.connect_to_signal('TrackChange', self.on_track_change)
-        self.spotifyservice.connect_to_signal('PropertiesChanged', self.on_property_change)
+        logging.debug('Connecting to track change signal')
+        self.dbus_spotify_service.connect_to_signal('TrackChange', self.on_track_change)
+        self.dbus_spotify_service.connect_to_signal('PropertiesChanged', self.on_property_change)
 
         # listen for media key presses
-        self.bus_object = self.bus.get_object(
-            'org.gnome.SettingsDaemon', '/org/gnome/SettingsDaemon/MediaKeys')
-        self.bus_object.GrabMediaPlayerKeys(
-            'Spotify', 0, dbus_interface='org.gnome.SettingsDaemon.MediaKeys')
-        self.bus_object.connect_to_signal(
-            'MediaPlayerKeyPressed', self.on_media_key_pressed)
+        logging.debug('Connecting to media keys signal')
+        bus_object = self.dbus_bus.get_object('org.gnome.SettingsDaemon', '/org/gnome/SettingsDaemon/MediaKeys')
+        bus_object.GrabMediaPlayerKeys('Spotify', 0, dbus_interface='org.gnome.SettingsDaemon.MediaKeys')
+        bus_object.connect_to_signal('MediaPlayerKeyPressed', self.on_media_key_pressed)
 
     """ calls a given method over DBus """
     def call_method(self, method):
         if (method):
-            #self.connect()
-            self.spotifyservice = self.bus.get_object('com.spotify.qt', '/org/mpris/MediaPlayer2')
-            self.cmd = self.spotifyservice.get_dbus_method(method, 'org.mpris.MediaPlayer2.Player')
-            self.cmd()
+            logging.debug('Calling DBus method {0}'.format(method))
+            self.dbus_spotify_service = self.dbus_bus.get_object('com.spotify.qt', '/org/mpris/MediaPlayer2')
+            dbus_method = self.dbus_spotify_service.get_dbus_method(method, 'org.mpris.MediaPlayer2.Player')
+            dbus_method()
 
     """
     media key handler
@@ -53,6 +59,7 @@ class SpotifyDBus(object):
     sends the corresponding command to Spotify
     """
     def on_media_key_pressed(self, *mmkeys):
+        logging.debug('Media key pressed')
         for key in mmkeys:
             if key == 'Play':
                 self.call_method('PlayPause')
@@ -68,26 +75,25 @@ class SpotifyDBus(object):
 
     this method will also run on track change
     """
-    def on_property_change(self, *on_track_change):
-        self.spotifyservice = self.bus.get_object('com.spotify.qt', '/')
-        self.cmd = self.spotifyservice.get_dbus_method('GetMetadata', 'org.freedesktop.MediaPlayer2')
-        self.new  = self.cmd()
-        self.on_track_change(self.new)
+    def on_property_change(self, *data):
+        logging.debug('Property change event triggered')
+        self.dbus_spotify_service = self.dbus_bus.get_object('com.spotify.qt', '/')
+        dbus_method = self.dbus_spotify_service.get_dbus_method('GetMetadata', 'org.freedesktop.MediaPlayer2')
+        self.on_track_change(dbus_method())
 
     """
     track change handler
     """
     def on_track_change(self, *info_hash):
+        logging.debug('Track change event triggered')
         data = info_hash[0]
-        #print data
-#dbus.Dictionary({dbus.String(u'xesam:album'): dbus.String(u'Worms 2 - Original Game Soundtrack', variant_level=1), dbus.String(u'xesam:title'): dbus.String(u'Pink Bravery', variant_level=1), dbus.String(u'xesam:trackNumber'): dbus.Int32(7, variant_level=1), dbus.String(u'xesam:artist'): dbus.String(u'Bj\xc3\xb8rn Lynne', variant_level=1), dbus.String(u'xesam:discNumber'): dbus.Int32(0, variant_level=1), dbus.String(u'mpris:trackid'): dbus.String(u'spotify:track:2VgL21XC3E7FTydxysLRe3', variant_level=1), dbus.String(u'mpris:length'): dbus.UInt64(263000000L, variant_level=1), dbus.String(u'xesam:autoRating'): dbus.Double(0.19, variant_level=1), dbus.String(u'xesam:contentCreated'): dbus.String(u'1998-01-01T00:00:00', variant_level=1), dbus.String(u'xesam:url'): dbus.String(u'spotify:track:2VgL21XC3E7FTydxysLRe3', variant_level=1)}, signature=dbus.Signature('sv'))
-        if "xesam:artist" in data:
+        if 'xesam:artist' in data:
             song = {
-                'artist': data["xesam:artist"].encode("latin-1"),
-                'title': data["xesam:title"].encode("latin-1"),
-                'album': data["xesam:album"].encode("latin-1"),
-                'created': data['xesam:contentCreated'].encode("latin-1"),
-                'track_id': data["mpris:trackid"].split(":", 3)[2].encode("latin-1")
+                'artist': data['xesam:artist'].encode('latin-1'),
+                'title': data['xesam:title'].encode('latin-1'),
+                'album': data['xesam:album'].encode('latin-1'),
+                'created': data['xesam:contentCreated'].encode('latin-1'),
+                'track_id': data['mpris:trackid'].split(':', 3)[2].encode('latin-1')
             }
             self.listener.on_track_change(song)
 
