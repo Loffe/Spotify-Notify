@@ -9,6 +9,9 @@ Dependencies are notify-osd and python-indicate.
 
 The script uses last.fm in order to fetch album cover and data.
 
+This product is not endorsed, certified or otherwise approved in any way by Spotify.
+Spotify is the registered trade mark of the Spotify Group.
+
 = Authors =
 
 Current branch by Victor Koronen <koronen@kth.se>.
