@@ -26,12 +26,16 @@ class SpotifyNotify(object):
         except:
             import  spotify_notify_xlib
             self.backend = spotify_notify_xlib.spotify(self)
-        self.backend.loop()
+        try:
+            self.backend.loop()
+        except:
+            pass
 
     """
     Clean up tmp cover image (if any)
     """
     def __del__(self):
+        print "Exiting"
         if self.cover_image and os.path.exists(self.cover_image):
             os.unlink(self.cover_image)
 
@@ -108,5 +112,7 @@ if __name__ == "__main__":
         print "You need to have a working pynotify-library installed.\nIf you are using Ubuntu, try \"sudo apt-get install python-notify\""
         sys.exit (1)
 
-    SpotifyNotify()
+    s = SpotifyNotify()
+    s.__del__()
+    del s
 
