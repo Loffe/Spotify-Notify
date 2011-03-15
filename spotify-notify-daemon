@@ -24,7 +24,7 @@ __copyright__ = 'Copyleft (C) 2011 Victor Koronen and contributors'
 __version__ = '0.1'
 
 # import standard libraries
-import os, time, sys, datetime, string, re, signal
+import os, time, sys, datetime, string, re, signal, shutil
 import urllib2
 import pynotify
 import tempfile
@@ -41,9 +41,6 @@ LOG_LEVEL = logging.DEBUG
 LOG_FILE_NAME = os.path.expanduser('~/.spotify-notify-daemon.log')
 PID_FILE_NAME = os.path.expanduser('~/.spotify-notify-daemon.pid')
 #CONF_FILE_NAME = os.path.expanduser('~/.spotify-notify-daemonrc')
-
-CURRENT_DIR = os.path.join(os.path.abspath(os.curdir), '')
-TMP_DIR = os.path.join(tempfile.gettempdir(), '')
 
 SPOTIFY_OPEN_URL = 'http://open.spotify.com/track/'
 LASTFM_API_KEY = '73f8547fa82ecbd0d0313f063c29571d' #spotify-notify's Last.fm API key
@@ -71,13 +68,6 @@ class SpotifyNotifyDaemon(Daemon):
             datefmt = '%Y-%m-%d %H:%M:%S %Z'
         )
 
-# TODO: handle SIGTERM
-#        # catch sigterm
-#        signal.signal(signal.SIGTERM, signal_handler)
-#
-#    def signal_handler(signum, frame):
-#        print('Signal handler called with signal %d %d'.format(signum, signal.SIGTERM))
-
     """ main loop """
     def run(self):
         logging.info('Starting up')
@@ -101,16 +91,22 @@ class SpotifyNotifyDaemon(Daemon):
         except:
             logging.error('Cannot initialize indicator applet')
 
-        # loop!
+        # create temporary directory
+        self.temp_dir = tempfile.mkdtemp()
+        logging.debug('Temporary directory is {0}'.format(self.temp_dir))
+
+        # run loop
         logging.debug('Entering main backend loop')
         self.backend.loop()
 
-    """ On delete, clean up tmp cover image (if any) """
-    def __del__(self):
+        # shut down
+        # TODO: hook this up
         logging.info('Shutting down')
-        logging.debug('Cleaning up cover image (if any)')
-        if self.cover_image and os.path.exists(self.cover_image):
-            os.unlink(self.cover_image)
+        logging.debug('Cleaning up cached cover images (if any) derp')
+        try:
+            shutil.rmtree(self.temp_dir)
+        except Exception as e:
+            pass
 
     """ fetch cover from last.fm (TO BE UPDATED) """
     def fetchLastFmAlbumCover(self, artist, title, album = None):
@@ -151,7 +147,7 @@ class SpotifyNotifyDaemon(Daemon):
 
     """ fetch cover from last.fm """
     def fetchCoverImageSpotify(self, trackid):
-        logging.debug('Fetching cover for {0} from Spotify'.format(trackid))
+        logging.debug('Fetching cover for track {0} from Spotify'.format(trackid))
         try:
             # open track site
             url = SPOTIFY_OPEN_URL + trackid
@@ -159,22 +155,28 @@ class SpotifyNotifyDaemon(Daemon):
 
             # find the image (if any)
             image_re = re.search('/image/(.*)" alt', track_site_data)
-            return None if not image_re
+            if not image_re:
+                return None
+            image_id = image_re.group(1)
 
-            # open the image
-            image_url = 'http://open.spotify.com/image/{0}'.format(image_re.group(1))
-            image_handle = urllib2.urlopen(image_url)
+            # fetch image if not in cache
+            file_name = '{0}.jpg'.format(image_id)
+            file_path = os.path.join(self.temp_dir, file_name)
+            if os.path.exists(file_path):
+                logging.debug('Cache hit for image {0}'.format(file_name))
+            else:
+                logging.debug('Cache miss for image {0}'.format(file_name))
+                # open the image
+                image_url = 'http://open.spotify.com/image/{0}'.format(image_id)
+                image_handle = urllib2.urlopen(image_url)
 
-            # create a temporary file
-            (file_pipe, file_name) = tempfile.mkstemp()
-            file_handle = os.fdopen(file_pipe, 'wb')
+                # write image to file
+                file_handle = open(file_path, mode='wb')
+                data = image_handle.read()
+                file_handle.write(data)
+                file_handle.close()
 
-            # write image to temp file
-            data = image_handle.read()
-            file_handle.write(data)
-            file_handle.close()
-
-            return file_name
+            return file_path
         except Exception as e:
             logging.error("Couldn't fetch cover image from Spotify: {0}".format(e))
             return None
@@ -183,7 +185,7 @@ class SpotifyNotifyDaemon(Daemon):
     def on_track_change(self, meta):
         logging.debug('Track change handler triggered')
         # check if it really was a track change
-        if meta != self.old_meta and meta is not None:
+        if meta is not None and meta != self.old_meta:
             logging.debug('Detected new track')
 
             # old meta is now new meta

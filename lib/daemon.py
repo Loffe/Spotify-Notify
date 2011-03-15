@@ -95,7 +95,7 @@ class Daemon(object):
 
         # Get the pid from the pidfile
         try:
-            with open(self.pidfile,'r') as pf:
+            with open(self.pidfile, 'r') as pf:
                 pid = int(pf.read().strip())
         except IOError:
             pid = None
