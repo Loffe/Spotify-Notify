@@ -1,0 +1,247 @@
+#!/usr/bin/env python
+# -*- encoding: utf8 -*-
+#
+# Spotify-Notify - Notifications and media keys support for Spotify
+# Copyleft (C) 2011 Victor Koronen and contributors
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#
+
+__author__ = 'Victor Koronen'
+__copyright__ = 'Copyleft (C) 2011 Victor Koronen and contributors'
+__version__ = '0.1'
+
+# import standard libraries
+import os, time, sys, datetime, string, re, signal, shutil
+import urllib2
+import pynotify
+import tempfile
+import webbrowser
+import logging
+
+# import custom libraries
+sys.path.append(os.path.join(os.getcwd(), 'lib'))
+import pylast
+from daemon import Daemon
+
+# set constants
+LOG_LEVEL = logging.DEBUG
+LOG_FILE_NAME = os.path.expanduser('~/.spotify-notify-daemon.log')
+PID_FILE_NAME = os.path.expanduser('~/.spotify-notify-daemon.pid')
+#CONF_FILE_NAME = os.path.expanduser('~/.spotify-notify-daemonrc')
+
+SPOTIFY_OPEN_URL = 'http://open.spotify.com/track/'
+LASTFM_API_KEY = '73f8547fa82ecbd0d0313f063c29571d' #spotify-notify's Last.fm API key
+
+#
+# The notification daemon
+#
+class SpotifyNotifyDaemon(Daemon):
+    """ constructor """
+    def __init__(self):
+        # init daemon
+        super(SpotifyNotifyDaemon, self).__init__(PID_FILE_NAME)
+
+        # initialize fields
+        self.old_meta = None
+        self.old_id = None
+        self.cover_image = None
+
+        # setup logger
+        logging.basicConfig(
+            filename = LOG_FILE_NAME,
+            filemode = 'a+',
+            level = LOG_LEVEL,
+            format = '%(asctime)s %(levelname)-8s %(message)s',
+            datefmt = '%Y-%m-%d %H:%M:%S %Z'
+        )
+
+    """ main loop """
+    def run(self):
+        logging.info('Starting up')
+
+        # choose backend
+        try:
+            import spotify_notify_dbus
+            self.backend = spotify_notify_dbus.SpotifyDBus(self)
+        except:
+            import spotify_notify_xlib
+            self.backend = spotify_notify_xlib.SpotifyXLib(self)
+
+        # indicate init
+        try:
+            logging.debug('Initializing indicator applet')
+            import indicate
+            indicateserver = indicate.indicate_server_ref_default()
+            indicateserver.set_type('music.spotify')
+            indicateserver.set_desktop_file('/usr/share/applications/spotify.desktop')
+            indicateserver.show()
+        except:
+            logging.error('Cannot initialize indicator applet')
+
+        # create temporary directory
+        self.temp_dir = tempfile.mkdtemp()
+        logging.debug('Temporary directory is {0}'.format(self.temp_dir))
+
+        # run loop
+        logging.debug('Entering main backend loop')
+        self.backend.loop()
+
+        # shut down
+        # TODO: hook this up
+        logging.info('Shutting down')
+        logging.debug('Cleaning up cached cover images (if any) derp')
+        try:
+            shutil.rmtree(self.temp_dir)
+        except Exception as e:
+            pass
+
+    """ fetch cover from last.fm (TO BE UPDATED) """
+    def fetchLastFmAlbumCover(self, artist, title, album = None):
+        logging.debug('Fetching cover for {0} - {1} from Last.FM'.format(artist, title))
+        try:
+            network = pylast.get_lastfm_network(api_key = LASTFM_API_KEY)
+
+            if (album is None):
+                track = network.get_track(artist, title)
+                album = track.get_album()
+            else:
+                album = network.get_album(artist, album)
+
+            url = album.get_cover_image(size = 1) #Equals medium size (best speed/quality compromise)
+            self.albumname = album.get_name()
+            coverfile = urllib2.urlopen(url)
+
+            # Remove old tmp if any
+            if self.cover_image and os.path.exists(self.cover_image):
+                os.unlink(self.cover_image)
+
+            output = tempfile.NamedTemporaryFile(prefix="spotifynotify_cover", suffix=".jpg",delete=False)
+            output.write(coverfile.read())
+            output.close()
+            release_date = album.get_release_date()
+            if (release_date): #Lousy check, needs to be fixed in case last.fm changes date data
+                release_string = release_date.split(" ")[2]
+                release_string = release_string.split(",")[0]
+                release_string = " ("+release_string+")"
+            else:
+                release_string = ""
+            self.release_string = release_string
+            #self.cover_image = TMP_DIR + 'spotifynotify_cover.jpg'
+            self.cover_image = output.name
+        except Exception as e:
+            logging.error("Couldn't fetch cover image: {0} from Spotify".format(e))
+            return None
+
+    """ fetch cover from last.fm """
+    def fetchCoverImageSpotify(self, trackid):
+        logging.debug('Fetching cover for track {0} from Spotify'.format(trackid))
+        try:
+            # open track site
+            url = SPOTIFY_OPEN_URL + trackid
+            track_site_data = urllib2.urlopen(url).read()
+
+            # find the image (if any)
+            image_re = re.search('/image/(.*)" alt', track_site_data)
+            if not image_re:
+                return None
+            image_id = image_re.group(1)
+
+            # fetch image if not in cache
+            file_name = '{0}.jpg'.format(image_id)
+            file_path = os.path.join(self.temp_dir, file_name)
+            if os.path.exists(file_path):
+                logging.debug('Cache hit for image {0}'.format(file_name))
+            else:
+                logging.debug('Cache miss for image {0}'.format(file_name))
+                # open the image
+                image_url = 'http://open.spotify.com/image/{0}'.format(image_id)
+                image_handle = urllib2.urlopen(image_url)
+
+                # write image to file
+                file_handle = open(file_path, mode='wb')
+                data = image_handle.read()
+                file_handle.write(data)
+                file_handle.close()
+
+            return file_path
+        except Exception as e:
+            logging.error("Couldn't fetch cover image from Spotify: {0}".format(e))
+            return None
+
+    """ called on track change """
+    def on_track_change(self, meta):
+        logging.debug('Track change handler triggered')
+        # check if it really was a track change
+        if meta is not None and meta != self.old_meta:
+            logging.debug('Detected new track')
+
+            # old meta is now new meta
+            self.old_meta = meta
+
+            # hack to see if there is any metadata in meta
+            if 'artist' in meta:
+                artist = meta['artist'] if 'artist' in meta else '(no artist)'
+                title = meta['title'] if 'title' in meta else '(no title)'
+                album = meta['album'] if 'album' in meta else '(no album)'
+                created = meta['created'] if 'created' in meta else '0000-00-00 00:00 UTC'
+                year = int(created[:4]) if created[:4] else '(no year)'
+                track_id = meta['track_id'] if 'track_id' in meta else None
+                
+                # TODO: enable choise
+                #cover_image = self.fetchLastFmAlbumCover(artist, title, album)
+                cover_image = self.fetchCoverImageSpotify(track_id)
+
+                # use cover image if available, otherwise just use the logo
+                # TODO: maybe download the logo from Spotify's website
+
+                # create notification
+                n = pynotify.Notification(title, '<i>%s</i>\n%s (%04d)' % (artist, album, year), cover_image)
+
+                # save notification id to replace popups
+                if self.old_id is not None:
+                    n.props.id = self.old_id
+
+                # show the notification
+                n.show()
+                self.old_id = n.props.id
+
+""" main (duh!) """
+def main():
+    # dependency check
+    if not pynotify.init('icon-summary-body'):
+        #print 'You need to have a working pynotify-library installed.\nIf you are using Ubuntu, try "sudo apt-get install python-notify"'
+        sys.exit(1)
+
+    # manage daemon
+    snd = SpotifyNotifyDaemon()
+    if len(sys.argv) == 2:
+        if 'start' == sys.argv[1]:
+            snd.start()
+        elif 'stop' == sys.argv[1]:
+            snd.stop()
+        elif 'restart' == sys.argv[1]:
+            snd.restart()
+        else:
+            print('Unknown command')
+            sys.exit(2)
+        sys.exit(0)
+    else:
+        print('usage: %s start|stop|restart'.format(sys.argv[0]))
+        sys.exit(2)
+
+if __name__ == '__main__':
+    main()
+

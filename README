@@ -1,0 +1,33 @@
+== Spotify-Notify ==
+
+Spotify-Notify is a daemon program used for displaying the currently playing song
+in Spotify on a Linux system, using the notify-osd notifier (found in e.g. Ubuntu).
+It also includes support for media keys.
+It is designed for and built on an Ubuntu system,
+but should work on any system supporting Python, DBus and notify-osd.
+Dependencies are notify-osd and python-indicate.
+
+The script uses last.fm in order to fetch album cover and data.
+
+This product is not endorsed, certified or otherwise approved in any way by Spotify.
+Spotify is the registered trade mark of the Spotify Group.
+
+= Authors =
+
+Current branch by Victor Koronen <koronen@kth.se>.
+Fork from Erik Eloff <erik@eloff.se>.
+Original code by noalwin <lambda512@gmail.com> and SveinT <sveint@gmail.com>.
+
+= Getting started =
+
+To get the daemon running, you first need to check the dependencies listed above.
+Then it's simply a matter of
+
+  $ ./spotify-notify-daemon start
+
+= FAQ =
+
+Q: Do I need Ubuntu to use this script? Will others distros work?
+A: For the sound inidicator applet, Ubuntu is required.
+   Otherwise, it should work on other distros as well.
+

@@ -1,0 +1,120 @@
+#!/usr/bin/env python
+# -*- encoding: utf8 -*-
+#
+# Spotify-Notify - Notifications and media keys support for Spotify
+# Copyleft (C) 2011 Victor Koronen and contributors
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#
+
+#
+# Spotify Current Song
+# 
+# This script lets you do stuff with the currently playing song (in Spotify).
+#
+
+import os, time, sys, datetime, string, re
+import urllib2
+import pynotify
+import tempfile
+import webbrowser
+
+import dbus
+from dbus.mainloop.glib import DBusGMainLoop
+import gobject, gtk
+
+SPOTIFY_OPEN_URL = "http://open.spotify.com/track/"
+
+class SpotifyCurrentSong(object):
+    """ constructor """
+    def __init__(self):
+        self.verbose = False
+
+    def get_meta_data(self):
+        DBusGMainLoop(set_as_default = True)
+        self.dbus_bus = dbus.Bus(dbus.Bus.TYPE_SESSION)
+        self.dbus_spotify_service = self.dbus_bus.get_object('com.spotify.qt', '/')
+        self.dbus_get_meta_data = self.dbus_spotify_service.get_dbus_method('GetMetadata', 'org.freedesktop.MediaPlayer2')
+        data = self.dbus_get_meta_data()
+        self.meta_data = {
+            'artist': data['xesam:artist'].encode('latin-1') if 'xesam:artist' in data else '(no artist)',
+            'title': data['xesam:title'].encode('latin-1') if 'xesam:title' in data else '(no title)',
+            'album': data['xesam:album'].encode('latin-1') if 'xesam:album' in data else '(no album)',
+            'created': data['xesam:contentCreated'].encode('latin-1') if 'xesam:contentCreated' in data else '(no date)',
+            'track_id': data['mpris:trackid'].split(":", 3)[2].encode('latin-1') if 'mpris:trackid' in data else '(no id)',
+        }
+        return self.meta_data
+
+    def set_verbose(self, verbose):
+        self.verbose = verbose
+
+    def webbrowser_open_url(self, url):
+        if self.verbose:
+            print "Opening url <%s>..." % (url)
+        webbrowser.open(url)
+
+    def open_lyrics(self):
+        artist = self.meta_data['artist']
+        title = self.meta_data['title']
+
+        def e(s):
+            return "_".join(map(urllib2.quote, s.title().split(" ")))
+
+        self.webbrowser_open_url("http://lyrics.wikia.com/%s:%s" % (e(artist), e(title)))
+
+    def open_http(self):
+        self.webbrowser_open_url("http://open.spotify.com/track/%s" % (self.meta_data['track_id']))
+
+    def print_http(self):
+        print "http://open.spotify.com/track/%s" % (self.meta_data['track_id'])
+
+    def print_uri(self):
+        print "spotify:track:%s" % (self.meta_data['track_id'])
+
+""" main (duh!) """
+def main():
+    # parse options
+    import argparse
+    parser = argparse.ArgumentParser(description='Does stuff with the currently playing song (in Spotify).')
+    parser.add_argument("-v", "--verbose", action="store_true", dest="verbose", default=False, help="adds verbosity")
+    parser.add_argument("-l", "--open-lyrics", action="store_true", dest="open_lyrics", default=False, help="displays lyrics for the current song in your browser")
+    parser.add_argument("-o", "--open-http-link", action="store_true", dest="open_http", default=False, help="opens the spotify page for the current song")
+    parser.add_argument("-p", "--print-http-link", action="store_true", dest="print_http", default=False, help="prints the http link for the current song")
+    parser.add_argument("-u", "--print-spotify-uri", action="store_true", dest="print_uri", default=False, help="prints the spotify uri for the current song")
+    args = parser.parse_args()
+
+    # get object and meta
+    scs = SpotifyCurrentSong()
+    scs.get_meta_data()
+
+    # do stuff
+    if args.verbose:
+        scs.set_verbose(True)
+
+    if args.open_lyrics:
+        scs.open_lyrics()
+
+    if args.open_http:
+        scs.open_http()
+
+    if args.print_http:
+        scs.print_http()
+
+    if args.print_uri:
+        scs.print_uri()
+
+if __name__ == '__main__':
+    main()
+
