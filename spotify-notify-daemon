@@ -197,7 +197,7 @@ class SpotifyNotifyDaemon(Daemon):
                 title = meta['title'] if 'title' in meta else '(no title)'
                 album = meta['album'] if 'album' in meta else '(no album)'
                 created = meta['created'] if 'created' in meta else '0000-00-00 00:00 UTC'
-                year = int(created[:4]) if created[:4] else '(no year)'
+                year = int(created[:4]) if created[:4] else 'no year'
                 track_id = meta['track_id'] if 'track_id' in meta else None
                 
                 # TODO: enable choise
@@ -208,7 +208,7 @@ class SpotifyNotifyDaemon(Daemon):
                 # TODO: maybe download the logo from Spotify's website
 
                 # create notification
-                n = pynotify.Notification(title, '<i>%s</i>\n%s (%04d)' % (artist, album, year), cover_image)
+                n = pynotify.Notification(title, '<i>{0}</i>\n{1} ({2})'.format(artist, album, year), cover_image)
 
                 # save notification id to replace popups
                 if self.old_id is not None:
