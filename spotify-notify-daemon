@@ -23,6 +23,7 @@ __author__ = 'Victor Koronen'
 __copyright__ = 'Copyleft (C) 2011 Victor Koronen and contributors'
 __version__ = '0.1'
 
+
 # import standard libraries
 import os, time, sys, datetime, string, re, signal, shutil
 import urllib2
@@ -32,7 +33,7 @@ import webbrowser
 import logging
 
 # import custom libraries
-sys.path.append(os.path.join(os.getcwd(), 'lib'))
+sys.path.append(os.path.join(sys.path[0], 'lib'))
 import pylast
 from daemon import Daemon
 
