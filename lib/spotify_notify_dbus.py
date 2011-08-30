@@ -89,7 +89,7 @@ class SpotifyDBus(object):
         data = info_hash[0]
         if 'xesam:artist' in data:
             song = {
-                'artist': data['xesam:artist'].encode('latin-1'),
+                'artist': data['xesam:artist'][0].encode('latin-1'),
                 'title': data['xesam:title'].encode('latin-1'),
                 'album': data['xesam:album'].encode('latin-1'),
                 'created': data['xesam:contentCreated'].encode('latin-1'),
