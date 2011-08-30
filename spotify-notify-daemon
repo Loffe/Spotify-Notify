@@ -146,7 +146,7 @@ class SpotifyNotifyDaemon(Daemon):
             logging.error("Couldn't fetch cover image: {0} from Spotify".format(e))
             return None
 
-    """ fetch cover from last.fm """
+    """ fetch cover from Spotify """
     def fetchCoverImageSpotify(self, trackid):
         logging.debug('Fetching cover for track {0} from Spotify'.format(trackid))
         try:
@@ -155,8 +155,9 @@ class SpotifyNotifyDaemon(Daemon):
             track_site_data = urllib2.urlopen(url).read()
 
             # find the image (if any)
-            image_re = re.search('/image/(.*)" alt', track_site_data)
+            image_re = re.search('"cover-art" src="http://o.scdn.co/image/(.*)"', track_site_data)
             if not image_re:
+                logging.debug("Couldn't find cover-art image in Spotify Data; regexp failure?")
                 return None
             image_id = image_re.group(1)
 
