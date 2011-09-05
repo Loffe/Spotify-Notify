@@ -61,15 +61,22 @@ class Daemon(object):
         os.dup2(so.fileno(), sys.stdout.fileno())
         os.dup2(se.fileno(), sys.stderr.fileno())
     
-        # write pidfile
+        # register to remove pid-file on exit
         atexit.register(self.delpid)
+        # make sure to call clean up if deamon is terminated externally
+        signal.signal(signal.SIGTERM, self.cleanup_handler)
 
         pid = str(os.getpid())
         with open(self.pidfile, 'w') as f:
             f.write(pid + '\n')
     
+    def cleanup_handler(signum, frame):
+        # sys.exit will trigger atexit
+        sys.exit(0)
+
     def delpid(self):
-        os.remove(self.pidfile)
+        if os.path.exists(self.pidfile):
+            os.remove(self.pidfile)
 
     def start(self):
         """Start the daemon."""
