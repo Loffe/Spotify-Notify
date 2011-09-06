@@ -89,11 +89,11 @@ class SpotifyDBus(object):
         data = info_hash[0]
         if 'xesam:artist' in data:
             song = {
-                'artist': data['xesam:artist'][0].encode('latin-1'),
-                'title': data['xesam:title'].encode('latin-1'),
-                'album': data['xesam:album'].encode('latin-1'),
-                'created': data['xesam:contentCreated'].encode('latin-1'),
-                'track_id': data['mpris:trackid'].split(':', 3)[2].encode('latin-1')
+                'artist': data['xesam:artist'][0],
+                'title': data['xesam:title'],
+                'album': data['xesam:album'],
+                'created': data['xesam:contentCreated'],
+                'track_id': data['mpris:trackid'].split(':', 3)[2]
             }
             self.listener.on_track_change(song)
 
