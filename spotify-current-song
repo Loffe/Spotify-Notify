@@ -49,11 +49,11 @@ class SpotifyCurrentSong(object):
         self.dbus_get_meta_data = self.dbus_spotify_service.get_dbus_method('GetMetadata', 'org.freedesktop.MediaPlayer2')
         data = self.dbus_get_meta_data()
         self.meta_data = {
-            'artist': data['xesam:artist'].encode('latin-1') if 'xesam:artist' in data else '(no artist)',
-            'title': data['xesam:title'].encode('latin-1') if 'xesam:title' in data else '(no title)',
-            'album': data['xesam:album'].encode('latin-1') if 'xesam:album' in data else '(no album)',
-            'created': data['xesam:contentCreated'].encode('latin-1') if 'xesam:contentCreated' in data else '(no date)',
-            'track_id': data['mpris:trackid'].split(":", 3)[2].encode('latin-1') if 'mpris:trackid' in data else '(no id)',
+            'artist': data['xesam:artist'] if 'xesam:artist' in data else '(no artist)',
+            'title': data['xesam:title'] if 'xesam:title' in data else '(no title)',
+            'album': data['xesam:album'] if 'xesam:album' in data else '(no album)',
+            'created': data['xesam:contentCreated'] if 'xesam:contentCreated' in data else '(no date)',
+            'track_id': data['mpris:trackid'].split(":", 3)[2] if 'mpris:trackid' in data else '(no id)',
         }
         return self.meta_data
 
@@ -66,7 +66,7 @@ class SpotifyCurrentSong(object):
         webbrowser.open(url)
 
     def open_lyrics(self):
-        artist = self.meta_data['artist']
+        artist = self.meta_data['artist'][0]
         title = self.meta_data['title']
 
         def e(s):
