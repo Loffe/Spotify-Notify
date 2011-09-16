@@ -195,7 +195,7 @@ class SpotifyNotifyDaemon(Daemon):
 
             # hack to see if there is any metadata in meta
             if 'artist' in meta:
-                artist = meta['artist'][0] if 'artist' in meta else '(no artist)'
+                artist = meta['artist'] if 'artist' in meta else '(no artist)'
                 title = meta['title'] if 'title' in meta else '(no title)'
                 album = meta['album'] if 'album' in meta else '(no album)'
                 created = meta['created'] if 'created' in meta else '0000-00-00 00:00 UTC'
